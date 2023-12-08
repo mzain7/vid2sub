@@ -4,6 +4,28 @@ import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+const String subtitleData = """
+1
+00:00:00,000 --> 00:00:02,000
+Cognac?
+
+2
+00:00:02,000 --> 00:00:04,000
+No, thank you.
+
+3
+00:00:04,000 --> 00:00:06,000
+Listen, I'm...
+
+4
+00:00:06,000 --> 00:00:08,000
+sorry...
+
+5
+00:00:08,000 --> 00:00:10,000
+for your loss.
+""";
+
 class VideoPlayerView extends StatefulWidget {
   const VideoPlayerView({
     super.key,
@@ -50,6 +72,7 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
             () => _chewieController = ChewieController(
               videoPlayerController: _videoPlayerController,
               aspectRatio: 16 / 9,
+              zoomAndPan: true,
               subtitle: Subtitles([
                 Subtitle(
                   index: 0,
@@ -86,7 +109,8 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
                   _chewieController!.videoPlayerController.value.aspectRatio,
               child: Chewie(
                 controller: _chewieController!,
-              ))
+              ),
+            )
           : Container(),
     );
   }

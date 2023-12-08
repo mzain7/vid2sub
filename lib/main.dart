@@ -135,10 +135,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
             dataSourceType: DataSourceType.network,
           ),
-          videoFile != null ? VideoPlayerView(
-            url: videoFile!.path,
-            dataSourceType: DataSourceType.file,
-          ): Container(),
+          videoFile != null
+              ? VideoPlayerView(
+                  url: videoFile!.path,
+                  dataSourceType: DataSourceType.file,
+                )
+              : Container(),
         ],
       ),
     );
@@ -162,7 +164,7 @@ class _MyHomePageState extends State<MyHomePage> {
     print('Audio file converted: $tempAudioPath');
 
     setState(() {
-      this.videoFile = File(tempAudioPath);
+      this.videoFile = File(videoFile.path!);
     });
 
     // var stream = await _sendAudioToOpenAI(tempAudioPath);
