@@ -1,15 +1,13 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_ffmpeg/flutter_ffmpeg.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:chewie/chewie.dart';
+import 'package:vid2sub/Widget/video_player_view.dart';
 import 'package:video_player/video_player.dart';
 
 void main() async {
@@ -34,79 +32,74 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final FlutterFFmpeg _flutterFFmpeg = FlutterFFmpeg();
-  AudioPlayer audioPlayer = AudioPlayer();
-  late VideoPlayerController videoPlayerController;
-  late ChewieController chewieController;
-  late Chewie playerWidget;
+  File? videoFile;
+  // late VideoPlayerController videoPlayerController;
+  // late ChewieController chewieController;
 
-  @override
-  void initState() {
-    super.initState();
-    videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(
-        'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4'))
-      ..initialize().then((_) {
-        // Ensure the first frame is shown after the video is initialized, even before the play button has been pressed.
-        chewieController = ChewieController(
-          videoPlayerController: videoPlayerController,
-          autoPlay: false,
-          looping: true,
-          autoInitialize: true,
-          showControls: true,
-          allowFullScreen: true,
-          allowMuting: true,
-          draggableProgressBar: true,
-          showOptions: true,
-          subtitle: Subtitles([
-            Subtitle(
-              index: 0,
-              start: Duration.zero,
-              end: const Duration(seconds: 2),
-              text: 'Hello from subtitles',
-            ),
-            Subtitle(
-              index: 1,
-              start: const Duration(seconds: 3),
-              end: const Duration(seconds: 8),
-              text: 'Whats up? :)',
-            ),
-          ]),
-          subtitleBuilder: (context, subtitle) => Container(
-            padding: const EdgeInsets.all(10.0),
-            child: Text(
-              subtitle,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-          allowPlaybackSpeedChanging: true,
-          aspectRatio: 16 / 9,
-          deviceOrientationsAfterFullScreen: [
-            DeviceOrientation.portraitUp,
-            DeviceOrientation.landscapeLeft,
-            DeviceOrientation.landscapeRight,
-          ],
-          deviceOrientationsOnEnterFullScreen: [
-            DeviceOrientation.landscapeLeft,
-            DeviceOrientation.landscapeRight,
-          ],
-          placeholder: Container(
-            color: Colors.grey,
-          ),
-        );
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(
+  //       'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4'))
+  //     ..initialize().then((_) {
+  //       // Ensure the first frame is shown after the video is initialized, even before the play button has been pressed.
+  //       chewieController = ChewieController(
+  //         videoPlayerController: videoPlayerController,
+  //         autoPlay: false,
+  //         looping: true,
+  //         autoInitialize: true,
+  //         showControls: true,
+  //         allowFullScreen: true,
+  //         allowMuting: true,
+  //         draggableProgressBar: true,
+  //         showOptions: true,
+  //         subtitle: Subtitles([
+  //           Subtitle(
+  //             index: 0,
+  //             start: Duration.zero,
+  //             end: const Duration(seconds: 2),
+  //             text: 'Hello from subtitles',
+  //           ),
+  //           Subtitle(
+  //             index: 1,
+  //             start: const Duration(seconds: 3),
+  //             end: const Duration(seconds: 8),
+  //             text: 'Whats up? :)',
+  //           ),
+  //         ]),
+  //         subtitleBuilder: (context, subtitle) => Container(
+  //           padding: const EdgeInsets.all(10.0),
+  //           child: Text(
+  //             subtitle,
+  //             style: const TextStyle(color: Colors.white),
+  //           ),
+  //         ),
+  //         allowPlaybackSpeedChanging: true,
+  //         aspectRatio: 16 / 9,
+  //         deviceOrientationsAfterFullScreen: [
+  //           DeviceOrientation.portraitUp,
+  //           DeviceOrientation.landscapeLeft,
+  //           DeviceOrientation.landscapeRight,
+  //         ],
+  //         deviceOrientationsOnEnterFullScreen: [
+  //           DeviceOrientation.landscapeLeft,
+  //           DeviceOrientation.landscapeRight,
+  //         ],
+  //         placeholder: Container(
+  //           color: Colors.grey,
+  //         ),
+  //       );
 
-        playerWidget = Chewie(
-          controller: chewieController,
-        );
+  //       setState(() {});
+  //     });
+  // }
 
-        setState(() {});
-      });
-  }
-
-  @override
-  void dispose() {
-    videoPlayerController.dispose();
-    chewieController.dispose();
-    super.dispose();
-  }
+  // @override
+  // void dispose() {
+  //   videoPlayerController.dispose();
+  //   chewieController.dispose();
+  //   super.dispose();
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -127,16 +120,25 @@ class _MyHomePageState extends State<MyHomePage> {
             },
             child: const Text('Convert Video to Audio'),
           ),
-          Center(
-            child: chewieController.videoPlayerController.value.isInitialized
-                ? AspectRatio(
-                    aspectRatio: chewieController
-                        .videoPlayerController.value.aspectRatio,
-                    child: Chewie(
-                      controller: chewieController,
-                    ))
-                : Container(),
+          // Center(
+          //   child: chewieController.videoPlayerController.value.isInitialized
+          //       ? AspectRatio(
+          //           aspectRatio: chewieController
+          //               .videoPlayerController.value.aspectRatio,
+          //           child: Chewie(
+          //             controller: chewieController,
+          //           ))
+          //       : Container(),
+          // ),
+          const VideoPlayerView(
+            url:
+                'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
+            dataSourceType: DataSourceType.network,
           ),
+          videoFile != null ? VideoPlayerView(
+            url: videoFile!.path,
+            dataSourceType: DataSourceType.file,
+          ): Container(),
         ],
       ),
     );
@@ -159,7 +161,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
     print('Audio file converted: $tempAudioPath');
 
-    await audioPlayer.play(DeviceFileSource(tempAudioPath));
+    setState(() {
+      this.videoFile = File(tempAudioPath);
+    });
 
     // var stream = await _sendAudioToOpenAI(tempAudioPath);
     // print(stream);
