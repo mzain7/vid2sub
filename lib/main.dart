@@ -32,7 +32,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final FlutterFFmpeg _flutterFFmpeg = FlutterFFmpeg();
-  File? videoFile;
+  PlatformFile? videoFile;
   // late VideoPlayerController videoPlayerController;
   // late ChewieController chewieController;
 
@@ -109,16 +109,16 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Column(
         children: [
-          const TextField(
-            decoration: InputDecoration(
-              hintText: 'Enter video URL',
-            ),
-          ),
+          // const TextField(
+          //   decoration: InputDecoration(
+          //     hintText: 'Enter video URL',
+          //   ),
+          // ),
           ElevatedButton(
             onPressed: () async {
-              await _requestPermissionAndPickVideo();
+              await _pickVideo();
             },
-            child: const Text('Convert Video to Audio'),
+            child: const Text('Upload Video'),
           ),
           // Center(
           //   child: chewieController.videoPlayerController.value.isInitialized
@@ -130,47 +130,132 @@ class _MyHomePageState extends State<MyHomePage> {
           //           ))
           //       : Container(),
           // ),
-          const VideoPlayerView(
-            url:
-                'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
-            dataSourceType: DataSourceType.network,
-          ),
           videoFile != null
-              ? VideoPlayerView(
-                  url: videoFile!.path,
-                  dataSourceType: DataSourceType.file,
-                )
+              ? FutureBuilder(
+                  key: UniqueKey(),
+                  future: _convertVideoToSrt(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      return VideoPlayerView(
+                        key: UniqueKey(),
+                        url: videoFile!.path!,
+                        dataSourceType: DataSourceType.file,
+                        subtitleData: snapshot.data.toString(),
+                      );
+                    } else {
+                      return const CircularProgressIndicator();
+                    }
+                  })
               : Container(),
+//           const VideoPlayerView(
+//             url:
+//                 'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
+//             dataSourceType: DataSourceType.network,
+//             subtitleData: """
+// 1
+// 00:00:00,000 --> 00:00:02,000
+// Cognac?
+
+// 2
+// 00:00:02,000 --> 00:00:04,000
+// No, thank you.
+
+// 3
+// 00:00:04,000 --> 00:00:06,000
+// Listen, I'm...
+
+// 4
+// 00:00:06,000 --> 00:00:08,000
+// sorry...
+
+// 5
+// 00:00:08,000 --> 00:00:10,000
+// for your loss.
+// """,
+//           ),
+//           videoFile != null
+//               ? VideoPlayerView(
+//                   url: videoFile!.path,
+//                   dataSourceType: DataSourceType.file,
+//                   subtitleData: """
+// 1
+// 00:00:00,000 --> 00:00:02,000
+// Cognac?
+
+// 2
+// 00:00:02,000 --> 00:00:04,000
+// No, thank you.
+
+// 3
+// 00:00:04,000 --> 00:00:06,000
+// Listen, I'm...
+
+// 4
+// 00:00:06,000 --> 00:00:08,000
+// sorry...
+
+// 5
+// 00:00:08,000 --> 00:00:10,000
+// for your loss.
+// """,
+//                 )
+//               : Container(),
         ],
       ),
     );
   }
 
-  Future<void> _requestPermissionAndPickVideo() async {
+  Future<void> _pickVideo() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.video,
       allowMultiple: false,
     );
     if (result == null || result.files.isEmpty) return;
 
-    PlatformFile videoFile = result.files.first;
-    // String videoPath = result.files.first.path!;
+    setState(() {
+      videoFile = result.files.first;
+    });
+  }
+
+  Future<String> _convertVideoToSrt() async {
     final directory = await getTemporaryDirectory();
     final tempAudioPath =
-        '${directory.path}/${videoFile.name + Random().nextInt(500).toString()}.m4a';
+        '${directory.path}/${videoFile!.name + Random().nextInt(500).toString()}.m4a';
 
-    await _convertVideoToAudio(videoFile.path!, tempAudioPath);
+    await _convertVideoToAudio(videoFile!.path!, tempAudioPath);
 
     print('Audio file converted: $tempAudioPath');
 
-    setState(() {
-      this.videoFile = File(videoFile.path!);
-    });
-
-    // var stream = await _sendAudioToOpenAI(tempAudioPath);
-    // print(stream);
-    return;
+    var srtData = await _sendAudioToOpenAI(tempAudioPath);
+    print(srtData);
+    return srtData;
   }
+
+  // Future<void> _requestPermissionAndPickVideo() async {
+  //   FilePickerResult? result = await FilePicker.platform.pickFiles(
+  //     type: FileType.video,
+  //     allowMultiple: false,
+  //   );
+  //   if (result == null || result.files.isEmpty) return;
+
+  //   PlatformFile videoFile = result.files.first;
+  //   // String videoPath = result.files.first.path!;
+  //   final directory = await getTemporaryDirectory();
+  //   final tempAudioPath =
+  //       '${directory.path}/${videoFile.name + Random().nextInt(500).toString()}.m4a';
+
+  //   await _convertVideoToAudio(videoFile.path!, tempAudioPath);
+
+  //   print('Audio file converted: $tempAudioPath');
+
+  //   setState(() {
+  //     this.videoFile = File(videoFile.path!);
+  //   });
+
+  //   // var stream = await _sendAudioToOpenAI(tempAudioPath);
+  //   // print(stream);
+  //   return;
+  // }
 
   Future<void> _convertVideoToAudio(String inputPath, String outputPath) async {
     String command =
@@ -203,10 +288,9 @@ class _MyHomePageState extends State<MyHomePage> {
       final response = await request.send();
       if (response.statusCode == 200) {
         print('Audio file sent successfully to OpenAI API');
-        var newresponse = await http.Response.fromStream(response);
-        final responseData = json.decode(newresponse.body);
-        print(responseData);
-        return responseData;
+        var responseData = await http.Response.fromStream(response);
+        print(responseData.body);
+        return responseData.body;
       } else {
         print('Failed to send audio file. Status code: ${response.statusCode}');
       }

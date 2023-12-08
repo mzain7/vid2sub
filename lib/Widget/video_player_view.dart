@@ -4,38 +4,20 @@ import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
-const String subtitleData = """
-1
-00:00:00,000 --> 00:00:02,000
-Cognac?
-
-2
-00:00:02,000 --> 00:00:04,000
-No, thank you.
-
-3
-00:00:04,000 --> 00:00:06,000
-Listen, I'm...
-
-4
-00:00:06,000 --> 00:00:08,000
-sorry...
-
-5
-00:00:08,000 --> 00:00:10,000
-for your loss.
-""";
 
 class VideoPlayerView extends StatefulWidget {
   const VideoPlayerView({
     super.key,
     required this.url,
     required this.dataSourceType,
+    required this.subtitleData,
   });
 
   final String url;
 
   final DataSourceType dataSourceType;
+
+  final String subtitleData;	
 
   @override
   State<VideoPlayerView> createState() => _VideoPlayerViewState();
@@ -71,22 +53,9 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
           (_) => setState(
             () => _chewieController = ChewieController(
               videoPlayerController: _videoPlayerController,
-              aspectRatio: 16 / 9,
+              // aspectRatio: 16 / 9,
               zoomAndPan: true,
-              subtitle: Subtitles([
-                Subtitle(
-                  index: 0,
-                  start: Duration.zero,
-                  end: const Duration(seconds: 2),
-                  text: 'Hello from subtitles',
-                ),
-                Subtitle(
-                  index: 1,
-                  start: const Duration(seconds: 3),
-                  end: const Duration(seconds: 8),
-                  text: 'Whats up? :)',
-                ),
-              ]),
+              subtitle: Subtitles(parseSRT(widget.subtitleData)),
             ),
           ),
         );
@@ -112,6 +81,58 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
               ),
             )
           : Container(),
+    );
+  }
+
+  List<Subtitle> parseSRT(String srtData) {
+    List<Subtitle> subtitles = [];
+
+    // Split the SRT data into individual subtitle blocks
+    List<String> blocks = srtData.split('\n\n');
+
+    for (String block in blocks) {
+      // Split each block into lines
+      List<String> lines = block.split('\n');
+
+      // Extract index, start time, end time, and text from lines
+      if (lines.length >= 3) {
+        int index = int.tryParse(lines[0]) ?? 0;
+
+        RegExp timeRegExp = RegExp(r'(\d+:\d+:\d+,\d+) --> (\d+:\d+:\d+,\d+)');
+        Iterable<Match> matches = timeRegExp.allMatches(lines[1]);
+
+        if (matches.isNotEmpty) {
+          String startTime = matches.first.group(1) ?? '00:00:00,000';
+          String endTime = matches.first.group(2) ?? '00:00:00,000';
+
+          Duration start = parseDuration(startTime);
+          Duration end = parseDuration(endTime);
+
+          String text = lines.sublist(2).join('\n').trim();
+
+          subtitles
+              .add(Subtitle(index: index, start: start, end: end, text: text));
+        }
+      }
+    }
+
+    return subtitles;
+  }
+
+  Duration parseDuration(String time) {
+    List<String> parts = time.split(':');
+    List<String> secondsAndMilliseconds = parts[2].split(',');
+
+    int hours = int.parse(parts[0]);
+    int minutes = int.parse(parts[1]);
+    int seconds = int.parse(secondsAndMilliseconds[0]);
+    int milliseconds = int.parse(secondsAndMilliseconds[1]);
+
+    return Duration(
+      hours: hours,
+      minutes: minutes,
+      seconds: seconds,
+      milliseconds: milliseconds,
     );
   }
 }
